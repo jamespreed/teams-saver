@@ -36,5 +36,5 @@ function getConversationData(conversation) {
 
     var reply_data = replies.map(getMessageData);
     data['replies'] = reply_data.toArray();
-    
+    return data
 }
