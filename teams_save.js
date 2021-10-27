@@ -64,7 +64,6 @@ function getConversationData(conversation_) {
     var data = getMessageData(primary_post);
     data['conversation_id'] = conversation_id;
 
-    console.log(replies);
     var reply_data = replies.map(toMapable(getMessageData));
     data['replies'] = reply_data.toArray();
     return data
