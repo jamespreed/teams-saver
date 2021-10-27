@@ -39,7 +39,7 @@ function getMessageData(message_item) {
     let thread_id = message_thread.children('div.clearfix').attr('id');
 
     // bubble-level
-    let message = message_thread.find('div.thread-body')
+    let message = message_thread.find('div.thread-body');
     let message_id = message.attr('id');
 
     // header
@@ -50,7 +50,9 @@ function getMessageData(message_item) {
     // content
     let body_div = message.find('div.message-body-content');
     let body = body_div.text().trim();
-    let images = body_div.find('img.ts-image');
+
+    // image attachments
+    let images = message.find('img.ts-image');
     let imgs_base64_src = images.map(toMapable(imgToImage64Src)).toArray();
     var data = {
         'thread_id': thread_id,
@@ -66,7 +68,7 @@ function getMessageData(message_item) {
 function saveChatData() {
     //// Save the messages from the "Chat" sidetab
     let message_list = $('div.ts-message-list-item');
-    let data = message_list.map(toMapable(getConversationData));
+    let data = message_list.map(toMapable(getMessageData));
     let json_data_str = JSON.stringify(data.toArray(), null, '  ');
 
     let now = new Date(Date.now());
