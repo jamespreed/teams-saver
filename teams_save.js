@@ -1,4 +1,24 @@
+// find the collapsed replies and expand them
+$('div.conversation-collapsed').find('div.expand-collapse:not(.chevron-expanded)').find('a.ts-collapsed-string').click();
 
+// let the expansions load
+await new Promise(r => setTimeout(r, 1000));
+console.log('Expanding replies');
+
+// find the "see more" button links and expand them
+$('button.ts-see-more-fold').click();
+
+// let the expansions load
+await new Promise(r => setTimeout(r, 1000));
+console.log('Expanding long messages');
+
+function toMapable(fn) {
+    //// Decorator function to pass a function to the $().map interface.
+    function wrapper(ix, e) {
+        return fn(e)
+    }
+    return wrapper
+}
 
 function getMessageData(message) {
     //// Gathers the header and body info from a single message in Teams
@@ -7,14 +27,28 @@ function getMessageData(message) {
     let header = msg.find('div.top-row-text-container');
     let name = header.find('div.ts-msg-name').text().trim();
     let date = header.find('span.ts-created.message-datetime').attr('title');
-    let body = msg.find('div.message-body-content').text().trim();
+    let body_div = msg.find('div.message-body-content');
+    let body = body_div.text().trim();
+    let images = body_div.find('img.ts-image');
+    let imgs_base64_src = images.map(toMapable(imgToImage64Src)).toArray();
     var data = {
         'msg_id': msg_id,
         'name': name,
         'date': date,
-        'body': body
+        'body': body,
+        'images_base64_src': imgs_base64_src
     }
     return data
+}
+
+function imgToImage64Src(img) {
+    let canvas = document.createElement('canvas');
+    let context = canvas.getContext('2d');
+    canvas.height = img.naturalHeight;
+    canvas.width = img.naturalWidth;
+    context.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight);
+    let image64_src = canvas.toDataURL();
+    return image64_src
 }
 
 function getConversationData(conversation_) {
@@ -31,19 +65,35 @@ function getConversationData(conversation_) {
     data['conversation_id'] = conversation_id;
 
     console.log(replies);
-    var reply_data = replies.map(getMessageData);
+    var reply_data = replies.map(toMapable(getMessageData));
     data['replies'] = reply_data.toArray();
     return data
+}
+
+function download(content, filename, contentType) {
+    var a = document.createElement("a");
+    var file = new Blob([content], {type: contentType});
+    a.href = URL.createObjectURL(file);
+    a.target = '_blank';
+    a.download = filename;
+    a.click();
 }
 
 function saveTeamsConversations() {
     //// Saves all messages in the current Team view in your browser
 
-    // find the collapsed replies and expand them
-    $('div.conversation-collapsed').find('div.expand-collapse:not(.chevron-expanded)').find('a.ts-collapsed-string').click();
-
     // grab the list of message threads
     let conversation_list = $('div.ts-message-list-item');
-    var data = conversation_list.map(getConversationData);
-    return data.toArray()
+    let data = conversation_list.map(toMapable(getConversationData));
+    let json_data_str = JSON.stringify(data.toArray(), null, '  ');
+
+    let now = new Date(Date.now());
+    let timestamp = now.toISOString().split('.')[0].replaceAll(':', '.');
+    let filename = 'Teams-json_' + timestamp + '.json';
+    download(json_data_str, filename, 'application/json');
+    return data
 }
+
+await new Promise(r => setTimeout(r, 2000));
+console.log('Scraping conversations');
+var data = saveTeamsConversations();
